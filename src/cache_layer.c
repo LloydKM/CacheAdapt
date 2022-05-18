@@ -1,0 +1,4 @@
+/* 
+library that implements and manages the caching layer for the intercepted
+system calls. 
+*/
