@@ -1,3 +1,7 @@
+/*
+Pseudo test program to get library working
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
