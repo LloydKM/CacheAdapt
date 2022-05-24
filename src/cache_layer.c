@@ -22,3 +22,5 @@ What functions do I need?
 - something to access file
 - something to create link or hash name (like a file handle)
 */
+int
+store()
