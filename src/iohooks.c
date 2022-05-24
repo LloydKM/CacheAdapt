@@ -12,9 +12,9 @@ typedef int (*real_open_t)(const char *, int, ...);
 typedef ssize_t (*real_read_t)(int, void *, size_t);
 typedef int (*real_close_t)(int);
 
-// TODO parallel stuff
+// TODO: parallel stuff
 
-// TODO find out which other sys calls need to be intercepted
+// TODO: find out which other sys calls need to be intercepted
 
 int
 real_open (const char *pathname, int flags, ...)
@@ -39,7 +39,7 @@ int
 open (const char *pathname, int flags, ...) 
 {
     int ret = -1;
-    /* TODO */
+    /* TODO: */
 
     // Try not to "intercept" std input and output
     if ((ret = real_open(pathname, flags, 0)) < 0)
@@ -70,14 +70,14 @@ ssize_t
 read (int fd, void *data, size_t size)
 {
     ssize_t amount_read;
-    /* TODO */
+    /* TODO: */
 
     // Try not to "intercept" std input and output
     if (fd > STDIO)
     {
         printf("intercepted read\n");
         /*
-        - Some more Code TODO
+        - Some more Code TODO:
         - Read from own cache
         */
     }
@@ -90,7 +90,7 @@ int
 close (int fd)
 {
     int ret = 0;
-    /* TODO */
+    /* TODO: */
     printf("intercepted close\n");
     ret = real_close(fd);
 
