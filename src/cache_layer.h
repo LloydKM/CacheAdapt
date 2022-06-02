@@ -1,11 +1,20 @@
 #ifndef CACHE_LAYER_H
 #define CACHE_LAYER_H
 
+#define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE
+
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <limits.h>
 
 // Don't forget include path for compilation -Ilib
 #include "klib/khash.h"
+
+#define KEY_PRESENT 0
+#define KEY_MISSING 1
 
 KHASH_MAP_INIT_STR(m32, const char *)
 /* TODO:
@@ -17,10 +26,17 @@ Option 3: Open access through header
 */
 // Hard coded cache_path as default- -> Does this incur Option 3?
 static const char *cache_path = "/tmp/CacheAdapt";
-static bool is_initialized = false;
 static khash_t(m32) *h;
+static char buffer[PATH_MAX];
 
-int init_layer(const char *path);
-int check_layer(const char *path);
+int _init_layer(const char *path);
+char *_normalize_path(const char* path);
+/*! @function
+    @abstract           checks if file is already loaded
+    @param path         path to file
+    @param local_path   will store path to file if locally available
+    @return             -1 error, 0 locally available, >0 not present
+*/
+int check_layer(const char *path, char *local_path);
 
 #endif
