@@ -3,9 +3,9 @@
 ## Compile dynamic library
 ```bash
 cd src/
-gcc -shared -fPIC -o iohooks.so iohooks.c cache_layer.c
+gcc -shared -I../lib -fPIC -o iohooks.so iohooks.c cache_layer.c
 # compile for debugging
-gcc -shared -g -Og -fPIC -o iohooks.so iohooks.c cache_layer.c
+gcc -shared -g -Og -I../lib -fPIC -o iohooks.so iohooks.c cache_layer.c
 ```
 
 ## Compile test program
