@@ -3,9 +3,9 @@
 ## Compile dynamic library
 ```bash
 cd src/
-gcc -shared -fPIC -o iohooks.so iohooks.c
+gcc -shared -fPIC -o iohooks.so iohooks.c cache_layer.c
 # compile for debugging
-gcc -shared -g -Og -fPIC -o iohooks.so iohooks.c
+gcc -shared -g -Og -fPIC -o iohooks.so iohooks.c cache_layer.c
 ```
 
 ## Compile test program
@@ -23,7 +23,7 @@ LD_PRELOAD=$PWD/iohooks.so ./out ../random
 
 ## Use gdb with iohooks
 ```bash
-gdb your_program
+gdb --args your_program
 
 (gdb) set environment LD_PRELOAD ./iohooks.so
 (gdb) start
