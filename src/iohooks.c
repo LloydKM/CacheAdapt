@@ -5,7 +5,10 @@
 
 #include <dlfcn.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <limits.h>
 
@@ -22,6 +25,24 @@ typedef int (*real_close_t)(int);
 int
 real_open (const char *pathname, int flags, ...)
 {
+    if ((flags & O_CREAT) == O_CREAT)
+    {
+        /*
+        char dir_name[PATH_MAX];
+        strncpy(dir_name, pathname, PATH_MAX);
+        printf("length of %s: %d\n", dir_name, strlen(dir_name));
+        for (size_t i = strlen(dir_name) - 1; dir_name[i] != '/'; i--)
+        {
+            printf("real_open: delete %c\n", dir_name[i]);
+            dir_name[i] = '\0';
+        }
+        strcat(dir_name, "XXXXXX");
+        printf("real_open: dir_name is %s\n", dir_name);
+        mkdtemp(dir_name);
+        */
+
+        return ((real_open_t)dlsym(RTLD_NEXT, "open"))(pathname, flags, 0x0777);    
+    }
     return ((real_open_t)dlsym(RTLD_NEXT, "open"))(pathname, flags, NULL);
 }
 
@@ -47,24 +68,74 @@ ptrace(int request, int pid, void *addr, void *data)
 }
 */
 
+void
+copy_to_tmp(const char *pathname, const char *local_path, int fdin, int fdout)
+{
+    void *src, *dst;
+    struct stat statbuf;
+
+    printf("copy_to_tmp called\n");
+
+    if (fstat(fdin, &statbuf) < 0)
+    {
+        printf("fstat error");
+        return;
+    }
+ /*   
+    if (lseek (fdout, statbuf.st_size - 1, SEEK_SET) == -1)
+    {
+        printf ("lseek error");
+        return;
+    }
+
+    // write a dummy byte at the last location
+    if (write (fdout, "", 1) != 1)
+    {   printf ("write error");
+        return;
+    }
+*/
+    printf("mmap original\n");
+    if ((src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0))
+        == (caddr_t) -1)
+    {
+        printf("mmap error for input");
+        return;
+    }
+
+    printf("mmap local\n");
+    if ((dst = mmap (0, statbuf.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
+        fdout, 0)) == (caddr_t) -1)
+    {
+        printf("mmap error for output\n");
+        printf("local_path: %s\n", local_path);
+        printf("errno: %d\n", errno);
+        //return;
+    }
+    printf("copy contents to local file\n");
+    //memcpy(dst, src, statbuf.st_size);
+    ssize_t nwritten = write(fdout, src, statbuf.st_size);
+    printf("end of copy_to_file reached\n");
+}
+
 int
 open (const char *pathname, int flags, ...) 
 {
     int err;
-    int fd;
+    int fdin, fdout;
+    mode_t mode = 0777;
     char local_path[PATH_MAX];
     /* TODO: */
 
-    if ((fd = real_open(pathname, flags, 0)) < 0)
+    if ((fdin = real_open(pathname, flags, 0)) < 0)
     {
         // ERROR Handling and propagation
-        return fd;
+        return fdin;
     }
     // Try not to "intercept" std input and output
-    else if (fd <= STDIO)
+    else if (fdin <= STDIO)
     {
         // Just call real_open in case of STDIO
-        return fd;
+        return fdin;
     }
     else
     {
@@ -83,15 +154,23 @@ open (const char *pathname, int flags, ...)
             // Do I really wann load it "remotly" in this case? prob not
             // For the sake of simplicity it will be done this way for now
             // Prob doesn't slow down original program significantly
-            return fd;
+            fdout = real_open("../randoom", O_RDWR | O_CREAT | O_TRUNC, mode);
+            if (fdout == -1) {
+                printf("Couldn't create local file errno: %d\n", errno);
+            }
+            printf("opened %s with fd: %d\n", local_path, fdout);
+            copy_to_tmp(pathname, "../randoom", fdin, fdout);
+            err = real_close(fdin);
+            return fdout;
         }
         else
         {
             // file is locally available. Close original file. Open local one
             printf("file is locally available: %s\n", local_path);
-            err = real_close(fd);
-            fd = real_open(local_path, flags, 0);
-            return fd;
+            fdout = real_open(local_path, O_RDWR | O_CREAT | O_TRUNC, mode);
+            copy_to_tmp(pathname, local_path, fdin, fdout);
+            err = real_close(fdin);
+            return fdout;
         }
     }
 }
