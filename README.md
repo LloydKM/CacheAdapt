@@ -1,24 +1,22 @@
-# Warning NOT current
-
 ## Compile dynamic library
 ```bash
-cd src/
-gcc -shared -I../lib -fPIC -o iohooks.so iohooks.c cache_layer.c
+make iohooks.so
 # compile for debugging
+cd src/
 gcc -shared -g -Og -I../lib -fPIC -o iohooks.so iohooks.c cache_layer.c
 ```
 
 ## Compile test program
 ```bash
-cd src/
-gcc main.c -o out
+make test
 # compile for debugging
+cd src/
 gcc main.c -g -Og -o out
 ```
 
 ## run program
 ```bash
-LD_PRELOAD=$PWD/iohooks.so ./out ../random
+LD_PRELOAD=$PWD/iohooks.so your_program
 ```
 
 ## Use gdb with iohooks

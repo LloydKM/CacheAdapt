@@ -11,7 +11,7 @@ iohooks.so: $(SRC)/iohooks.c $(SRC)/iohooks.h cache_layer.o
 cache_layer.o: $(SRC)/cache_layer.c $(SRC)/cache_layer.h
 	$(CC) $(CFLAGS) $(LIBS) -c $(SRC)/cache_layer.c
 
-test: $(CURDIR)/main.c $(CURDIR)/iohooks.c
+test: $(SRC)/main.c
 
 clean:
 	$(RM) test cache_layer.o iohooks.so $(SRC)/out $(SRC)/iohooks.so
