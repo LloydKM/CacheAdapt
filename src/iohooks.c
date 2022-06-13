@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <limits.h>
 
+#include <glib.h>
+
 #include "cache_layer.h"
 
 typedef int (*real_open_t)(const char *, int, ...);
@@ -121,6 +123,7 @@ int
 open (const char *pathname, int flags, ...) 
 {
     int err;
+    gint g_err;
     int fdin, fdout;
     mode_t mode = 0777;
     char local_path[PATH_MAX];
@@ -154,12 +157,14 @@ open (const char *pathname, int flags, ...)
             // Do I really wann load it "remotly" in this case? prob not
             // For the sake of simplicity it will be done this way for now
             // Prob doesn't slow down original program significantly
-            fdout = real_open("../randoom", O_RDWR | O_CREAT | O_TRUNC, mode);
+            g_err = g_mkdir_with_parents(local_path, mode);
+            err = rmdir(local_path);
+            fdout = real_open(local_path, O_RDWR | O_CREAT | O_TRUNC, mode);
             if (fdout == -1) {
                 printf("Couldn't create local file errno: %d\n", errno);
             }
             printf("opened %s with fd: %d\n", local_path, fdout);
-            copy_to_tmp(pathname, "../randoom", fdin, fdout);
+            copy_to_tmp(pathname, local_path, fdin, fdout);
             err = real_close(fdin);
             return fdout;
         }
