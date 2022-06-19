@@ -6,6 +6,7 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -83,19 +84,6 @@ copy_to_tmp(const char *pathname, const char *local_path, int fdin, int fdout)
         printf("fstat error");
         return;
     }
- /*   
-    if (lseek (fdout, statbuf.st_size - 1, SEEK_SET) == -1)
-    {
-        printf ("lseek error");
-        return;
-    }
-
-    // write a dummy byte at the last location
-    if (write (fdout, "", 1) != 1)
-    {   printf ("write error");
-        return;
-    }
-*/
     printf("mmap original\n");
     if ((src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0))
         == (caddr_t) -1)
@@ -124,10 +112,19 @@ open (const char *pathname, int flags, ...)
 {
     int err;
     gint g_err;
+    int no_match;
     int fdin, fdout;
     mode_t mode = 0777;
     char local_path[PATH_MAX];
-    /* TODO: */
+    
+    /* TODO:
+        - Does this check significantly impact performance?
+    */
+    if (!(no_match = fnmatch("*CacheAdapt/config", pathname, FNM_LEADING_DIR)))
+    {
+        printf("Intercepted config file - No need for handling\n");
+        return real_open(pathname, flags, 0);
+    }
 
     if ((fdin = real_open(pathname, flags, 0)) < 0)
     {
