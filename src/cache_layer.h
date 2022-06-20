@@ -39,6 +39,8 @@ char *_normalize_path(const char* path);
     @param local_path   will store path to file if locally available
     @return             -1 error, 0 locally available, >0 not present
 */
+
+void copy_to_tmp(const char *pathname, const char *local_path, int fdin, int fdout);
 int check_layer(const char *path, char *local_path);
 
 #endif
