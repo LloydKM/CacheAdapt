@@ -12,11 +12,17 @@
 #include <sys/mman.h>
 #include <limits.h>
 
+#include <glib.h>
+
 // Don't forget include path for compilation -Ilib
 #include "klib/khash.h"
+#include "klib/kson.h"
 
 #define KEY_PRESENT 0
 #define KEY_MISSING 1
+
+#define PARSE_SUCCESS   0
+#define PARSE_FAIL      1
 
 KHASH_MAP_INIT_STR(m32, const char *)
 /* TODO:
