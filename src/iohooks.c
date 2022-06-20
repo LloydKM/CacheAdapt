@@ -71,42 +71,6 @@ ptrace(int request, int pid, void *addr, void *data)
 }
 */
 
-void
-copy_to_tmp(const char *pathname, const char *local_path, int fdin, int fdout)
-{
-    void *src, *dst;
-    struct stat statbuf;
-
-    printf("copy_to_tmp called\n");
-
-    if (fstat(fdin, &statbuf) < 0)
-    {
-        printf("fstat error");
-        return;
-    }
-    printf("mmap original\n");
-    if ((src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0))
-        == (caddr_t) -1)
-    {
-        printf("mmap error for input");
-        return;
-    }
-
-    printf("mmap local\n");
-    if ((dst = mmap (0, statbuf.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-        fdout, 0)) == (caddr_t) -1)
-    {
-        printf("mmap error for output\n");
-        printf("local_path: %s\n", local_path);
-        printf("errno: %d\n", errno);
-        //return;
-    }
-    printf("copy contents to local file\n");
-    //memcpy(dst, src, statbuf.st_size);
-    ssize_t nwritten = write(fdout, src, statbuf.st_size);
-    printf("end of copy_to_file reached\n");
-}
-
 int
 open (const char *pathname, int flags, ...) 
 {

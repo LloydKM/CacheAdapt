@@ -28,6 +28,15 @@ _init_layer(const char *path)
     return 0;
 }
 
+int
+_load_adjacent_files(const char *path)
+{
+    int ret;
+
+
+    return ret;
+}
+
 char *
 _normalize_path(const char* path)
 {
@@ -37,6 +46,43 @@ _normalize_path(const char* path)
     char *local_path = strcat(strcpy(buffer, cache_path), resolved_path);
     printf("normalized to: %s\n", local_path);
     return local_path;
+}
+
+
+void
+copy_to_tmp(const char *pathname, const char *local_path, int fdin, int fdout)
+{
+    void *src, *dst;
+    struct stat statbuf;
+
+    printf("copy_to_tmp called\n");
+
+    if (fstat(fdin, &statbuf) < 0)
+    {
+        printf("fstat error");
+        return;
+    }
+    printf("mmap original\n");
+    if ((src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0))
+        == (caddr_t) -1)
+    {
+        printf("mmap error for input");
+        return;
+    }
+
+    printf("mmap local\n");
+    if ((dst = mmap (0, statbuf.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
+        fdout, 0)) == (caddr_t) -1)
+    {
+        printf("mmap error for output\n");
+        printf("local_path: %s\n", local_path);
+        printf("errno: %d\n", errno);
+        //return;
+    }
+    printf("copy contents to local file\n");
+    //memcpy(dst, src, statbuf.st_size);
+    ssize_t nwritten = write(fdout, src, statbuf.st_size);
+    printf("end of copy_to_file reached\n");
 }
 
 int
