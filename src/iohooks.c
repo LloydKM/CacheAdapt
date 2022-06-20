@@ -112,7 +112,6 @@ open (const char *pathname, int flags, ...)
 {
     int err;
     gint g_err;
-    int no_match;
     int fdin, fdout;
     mode_t mode = 0777;
     char local_path[PATH_MAX];
@@ -120,7 +119,9 @@ open (const char *pathname, int flags, ...)
     /* TODO:
         - Does this check significantly impact performance?
     */
-    if (!(no_match = fnmatch("*CacheAdapt/config", pathname, FNM_LEADING_DIR)))
+    if (!(FNM_NOMATCH == fnmatch("*/config",
+                                 pathname,
+                                 FNM_LEADING_DIR)))
     {
         printf("Intercepted config file - No need for handling\n");
         return real_open(pathname, flags, 0);
