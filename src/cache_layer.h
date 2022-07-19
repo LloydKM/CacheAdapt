@@ -5,8 +5,10 @@
 #define _GNU_SOURCE
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -14,9 +16,12 @@
 
 #include <glib.h>
 
-// Don't forget include path for compilation -Ilib
 #include "klib/khash.h"
 #include "klib/kson.h"
+
+#ifndef MAX_THREADS
+    #define MAX_THREADS 4
+#endif
 
 #define KEY_PRESENT 0
 #define KEY_MISSING 1

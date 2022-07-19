@@ -3,7 +3,10 @@ library that implements and manages the caching layer for the intercepted
 system calls. 
 */
 #include "cache_layer.h"
+#include "iohooks.h"
 
+static GThreadPool *thread_pool;
+static GError *error;
 static bool is_initialized = false;
 
 /* TODO:
@@ -22,66 +25,103 @@ _init_layer(const char *path)
 {
     printf("initialize cache layer\n");
     khint_t iterator;
+    gboolean exclusive = TRUE;
     // allocate a hash table
     h = kh_init(m32);
+    // initialize thread pool used by layer
+    thread_pool = g_thread_pool_new((GFunc) copy_to_tmp,
+                                    NULL,
+                                    MAX_THREADS,
+                                    exclusive,
+                                    &error);
     is_initialized = true;
     return 0;
 }
 
+void
+_parse_json(FILE *src, kson_t **dest)
+{
+    int tmp;
+    int len = 0;
+    int max = 0;
+    char *json= 0;
+    char buf[0x10000];
+
+    // read file into string
+    while ((tmp = fread(buf, 1, 0x10000, src)) != 0)
+    {
+        if (len + tmp + 1 > max)
+        {
+            max = len + tmp + 1;
+            kroundup32(max);
+            json = (char *) realloc(json, max);
+        }
+        memcpy(json + len, buf, tmp);
+        len += tmp;
+    }
+
+    *dest = kson_parse(json);
+    free(json);
+}
+
 // This needs to be called concurrently
-// omp or extra thread
+// probably omp in extra thread
 int
 _load_adjacent_files(const char *path)
 {
     kson_t *kson = 0;
-    int ret, tmp, i;
-    int len = 0;
-    int max = 0;
+    gint g_err;
+    mode_t mode = 0777;
+    int ret, i;
     FILE *fp;
-    char *json = 0;
-    char buf[0x10000];
 
     // TODO: Search for json based on path
+    // Maybe seperate json handling from rest of function // modularity
 
     if ((fp = fopen("./config/test.json", "rb")) != 0)
     {
-        // read file into string
-        while ((tmp = fread(buf, 1, 0x10000, fp)) != 0)
-        {
-            if (len + tmp + 1 > max)
-            {
-                max = len + tmp + 1;
-                kroundup32(max);
-                json = (char *) realloc(json, max);
-            }
-            memcpy(json + len, buf, tmp);
-            len += tmp;
-        }
+        _parse_json(fp, &kson);
         fclose(fp);
-        // parse
-        kson = kson_parse(json);
-        free(json);
-        if (kson)
+    }
+    if (kson)
+    {
+        const kson_node_t *p, *adj_file;
+        char *resolved_path;
+        char local_path[PATH_MAX];
+        int fdin, fdout;
+        int err;
+        // kson_format(kson->root);
+        p = kson_by_key(kson->root, "adjacent_files");
+        for (i = 0; (adj_file = kson_by_index(p, i)); i++)
         {
-            const kson_node_t *p, *adj_file;
-            // kson_format(kson->root);
-            p = kson_by_key(kson->root, "adjacent_files");
-            for (i = 0; (adj_file = kson_by_index(p, i)); i++)
+            resolved_path = realpath(adj_file->v.str, NULL);
+            // open file
+            if ((fdin = real_open(resolved_path,
+                                  O_RDWR,
+                                  mode)) 
+                                  != 0)
             {
-                //adj_file = kson_by_index(p, i);
-                // open file
+                strncpy(local_path, _normalize_path(resolved_path), PATH_MAX);
                 // crete path in tmp (glib)
+                g_err = g_mkdir_with_parents(local_path, mode);
+                rmdir(local_path);
                 // create and open file in tmp
+                fdout = real_open(local_path, O_RDWR | O_CREAT | O_TRUNC, mode);
                 // call copy_to_tmp
-                printf("%s should be laoded here\n", adj_file->v.str);
+                copy_to_tmp(resolved_path, local_path, fdin, fdout);
+                err = real_close(fdin);
+                err = real_close(fdout);
+                free(resolved_path);
+                
             }
-            ret = PARSE_SUCCESS;
-        } 
-        else 
-        {
-            ret = PARSE_FAIL;
-            printf("failed to parse\n");
+            printf("%s should be laoded here\n", adj_file->v.str);
         }
+        ret = PARSE_SUCCESS;
+    } 
+    else 
+    {
+        ret = PARSE_FAIL;
+        printf("failed to parse\n");
     }
 
     return ret;
@@ -109,14 +149,14 @@ copy_to_tmp(const char *pathname, const char *local_path, int fdin, int fdout)
 
     if (fstat(fdin, &statbuf) < 0)
     {
-        printf("fstat error");
+        printf("fstat error: %d\n", errno);
         return;
     }
     printf("mmap original\n");
     if ((src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0))
         == (caddr_t) -1)
     {
-        printf("mmap error for input");
+        printf("mmap error for input: %d\n", errno);
         return;
     }
 

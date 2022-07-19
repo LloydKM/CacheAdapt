@@ -9,7 +9,7 @@ iohooks.so: $(SRC)/iohooks.c $(SRC)/iohooks.h cache_layer.o kson.o
 	$(SRC)/iohooks.c cache_layer.o kson.o
 
 cache_layer.o: $(SRC)/cache_layer.c $(SRC)/cache_layer.h
-	$(CC) $(CFLAGS) $(LIBS) -c $(SRC)/cache_layer.c
+	$(CC) $(CFLAGS) $(LIBS) -fPIC -c $(SRC)/cache_layer.c
 
 kson.o: $(CURDIR)/lib/klib/kson.c $(CURDIR)/lib/klib/kson.h
 	$(CC) $(CFLAGS) $(LIBS) -fPIC -c $(CURDIR)/lib/klib/kson.c
