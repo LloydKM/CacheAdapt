@@ -17,6 +17,8 @@ kson.o: $(CURDIR)/lib/klib/kson.c $(CURDIR)/lib/klib/kson.h
 test: $(SRC)/main.c
 	$(CC) $(CFLAGS) -o test $(SRC)/main.c
 
+all: iohooks.so test
+
 clean:
 	$(RM) test cache_layer.o iohooks.so $(SRC)/out $(SRC)/iohooks.so \
 	kson.o

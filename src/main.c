@@ -15,7 +15,6 @@ main(int argc, const char *argv[])
     void *buf;
     ssize_t size_read;
     int test_integer;
-    int ret;
 
     if ( (fd = open(argv[1], O_RDONLY)) < 0)
     {
@@ -29,7 +28,7 @@ main(int argc, const char *argv[])
     scanf("%d", &test_integer);  
     printf("Number = %d\n",test_integer);
 
-    ret = close(fd);
+    close(fd);
     
     return EXIT_SUCCESS;
 }

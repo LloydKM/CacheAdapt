@@ -42,6 +42,11 @@ static const char *cache_path = "/tmp/CacheAdapt";
 static khash_t(m32) *h;
 static char buffer[PATH_MAX];
 
+struct fd_info {
+    int fdin;
+    int fdout;
+};
+
 int _init_layer(const char *path);
 char *_normalize_path(const char* path);
 /*! @function
@@ -51,7 +56,7 @@ char *_normalize_path(const char* path);
     @return             -1 error, 0 locally available, >0 not present
 */
 
-void copy_to_tmp(const char *pathname, const char *local_path, int fdin, int fdout);
+void copy_to_tmp(gpointer data);
 int check_layer(const char *path, char *local_path);
 
 #endif

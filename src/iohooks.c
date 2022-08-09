@@ -79,6 +79,7 @@ open (const char *pathname, int flags, ...)
     int fdin, fdout;
     mode_t mode = 0777;
     char local_path[PATH_MAX];
+    struct fd_info *files;
     
     /* TODO:
         - Does this check significantly impact performance?
@@ -104,13 +105,16 @@ open (const char *pathname, int flags, ...)
     }
     else
     {
-        /* 
-        - File probably needs handling, 
+        /*
+        - File probably needs handling,
         - look up json with file information
         - check if already in cache
         - load necessery data into cache
         - create reference to data for faster laoding in read
         */
+        files = malloc(sizeof(struct fd_info));
+        files->fdin = fdin;
+
         printf("intercepted open: %s\n", pathname);
         if ((err = check_layer(pathname, local_path)) != 0)
         {
@@ -125,8 +129,9 @@ open (const char *pathname, int flags, ...)
             if (fdout == -1) {
                 printf("Couldn't create local file errno: %d\n", errno);
             }
+            files->fdout = fdout;
             printf("opened %s with fd: %d\n", local_path, fdout);
-            copy_to_tmp(pathname, local_path, fdin, fdout);
+            copy_to_tmp((gpointer) files);
             err = real_close(fdin);
             return fdout;
         }
@@ -135,7 +140,8 @@ open (const char *pathname, int flags, ...)
             // file is locally available. Close original file. Open local one
             printf("file is locally available: %s\n", local_path);
             fdout = real_open(local_path, O_RDWR | O_CREAT | O_TRUNC, mode);
-            copy_to_tmp(pathname, local_path, fdin, fdout);
+            files->fdout = fdout;
+            copy_to_tmp((gpointer) files);
             err = real_close(fdin);
             return fdout;
         }
@@ -172,6 +178,7 @@ close (int fd)
         - Do I need to delete file from cache if close is called?
         - Way to do this:
             call readlink on /proc/self/fd/NNN where NNN is the file descriptor
+        - Maybe use poolthread with low priority so IO doesn't halt program
     */
     printf("intercepted close\n");
     ret = real_close(fd);

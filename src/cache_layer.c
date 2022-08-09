@@ -90,25 +90,39 @@ _load_adjacent_files(const char *path)
         char local_path[PATH_MAX];
         int fdin, fdout;
         int err;
-        // kson_format(kson->root);
+        gboolean pushed;
+        khint_t iterator;
+        struct fd_info *files;
+
+        files = malloc(sizeof(struct fd_info));
+
         p = kson_by_key(kson->root, "adjacent_files");
         for (i = 0; (adj_file = kson_by_index(p, i)); i++)
         {
             resolved_path = realpath(adj_file->v.str, NULL);
             // open file
-            if ((fdin = real_open(resolved_path,
-                                  O_RDWR,
-                                  mode)) 
-                                  != 0)
+            if ((fdin = real_open(resolved_path, O_RDWR, mode)) != 0)
             {
+                files->fdin = fdin;
                 strncpy(local_path, _normalize_path(resolved_path), PATH_MAX);
                 // crete path in tmp (glib)
                 g_err = g_mkdir_with_parents(local_path, mode);
                 rmdir(local_path);
                 // create and open file in tmp
                 fdout = real_open(local_path, O_RDWR | O_CREAT | O_TRUNC, mode);
+                files->fdout = fdout;
+                // put entry into hash_table
+                iterator = kh_put(m32, h, resolved_path, &ret);
+                kh_value(h, iterator) = local_path;
                 // call copy_to_tmp
-                copy_to_tmp(resolved_path, local_path, fdin, fdout);
+                if ((pushed = g_thread_pool_push(thread_pool,
+                             (gpointer) files,
+                              g_err))
+                     != TRUE)
+                {
+                    printf("couldn't push new task to thread pool\n");
+                }
+                //copy_to_tmp(fdin, fdout);
                 err = real_close(fdin);
                 err = real_close(fdout);
                 free(resolved_path);
@@ -116,6 +130,7 @@ _load_adjacent_files(const char *path)
             }
             printf("%s should be laoded here\n", adj_file->v.str);
         }
+        free(files);
         ret = PARSE_SUCCESS;
     } 
     else 
@@ -140,10 +155,14 @@ _normalize_path(const char* path)
 
 
 void
-copy_to_tmp(const char *pathname, const char *local_path, int fdin, int fdout)
+copy_to_tmp(gpointer data)
 {
     void *src, *dst;
     struct stat statbuf;
+
+    struct fd_info *files = ((struct fd_info *) data);
+    int fdin = files->fdin;
+    int fdout = files->fdout;
 
     printf("copy_to_tmp called\n");
 
@@ -165,7 +184,6 @@ copy_to_tmp(const char *pathname, const char *local_path, int fdin, int fdout)
         fdout, 0)) == (caddr_t) -1)
     {
         printf("mmap error for output\n");
-        printf("local_path: %s\n", local_path);
         printf("errno: %d\n", errno);
         //return;
     }

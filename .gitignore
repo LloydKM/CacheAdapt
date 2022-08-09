@@ -1,5 +1,7 @@
 .vscode
 *.so
+*.o
 out
 random
 test_data
+test
