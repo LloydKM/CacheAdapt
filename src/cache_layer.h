@@ -14,6 +14,8 @@
 #include <sys/mman.h>
 #include <limits.h>
 
+#define G_LOG_USE_STRUCTURED
+
 #include <glib.h>
 
 #include "klib/khash.h"
@@ -47,16 +49,13 @@ struct fd_info {
     int fdout;
 };
 
-int _init_layer(const char *path);
-char *_normalize_path(const char* path);
+void ca_copy_to_tmp(gpointer data);
 /*! @function
     @abstract           checks if file is already loaded
     @param path         path to file
     @param local_path   will store path to file if locally available
     @return             -1 error, 0 locally available, >0 not present
 */
-
-void copy_to_tmp(gpointer data);
-int check_layer(const char *path, char *local_path);
+int ca_check_layer(const char *path, char *local_path);
 
 #endif

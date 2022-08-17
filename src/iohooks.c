@@ -116,7 +116,7 @@ open (const char *pathname, int flags, ...)
         files->fdin = fdin;
 
         printf("intercepted open: %s\n", pathname);
-        if ((err = check_layer(pathname, local_path)) != 0)
+        if ((err = ca_check_layer(pathname, local_path)) != 0)
         {
             // some kind of error handling later
             printf("file is not locally available\n");
@@ -131,7 +131,7 @@ open (const char *pathname, int flags, ...)
             }
             files->fdout = fdout;
             printf("opened %s with fd: %d\n", local_path, fdout);
-            copy_to_tmp((gpointer) files);
+            ca_copy_to_tmp((gpointer) files);
             err = real_close(fdin);
             return fdout;
         }
@@ -141,7 +141,7 @@ open (const char *pathname, int flags, ...)
             printf("file is locally available: %s\n", local_path);
             fdout = real_open(local_path, O_RDWR | O_CREAT | O_TRUNC, mode);
             files->fdout = fdout;
-            copy_to_tmp((gpointer) files);
+            ca_copy_to_tmp((gpointer) files);
             err = real_close(fdin);
             return fdout;
         }
