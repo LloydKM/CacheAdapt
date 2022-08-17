@@ -2,7 +2,11 @@ CC		= gcc
 CFLAGS	= -std=c11 -Wall -Wextra -Wpedantic -O0
 DEBUG	= -std=c11 -Wall -Wextra -Wpedantic -Og -g
 SRC 	= $(CURDIR)/src
-LIBS	= -I$(CURDIR)/lib `pkg-config --cflags --libs glib-2.0`
+LIBS	= -I$(CURDIR)/lib
+
+# cflags and libs for glib-2.0
+CFLAGS  += -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-4 -pthread
+LIBS	+= -lglib-2.0
 
 iohooks.so: $(SRC)/iohooks.c $(SRC)/iohooks.h cache_layer.o kson.o
 	$(CC) $(CFLAGS) -shared $(LIBS) -fPIC -o iohooks.so \
