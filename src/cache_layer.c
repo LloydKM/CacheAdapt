@@ -27,7 +27,8 @@ What functions do I need?
 int
 ca_init_layer(const char *path)
 {
-    printf("initialize cache layer\n");
+    // TODO: Create queue for loading of files
+    g_message("initializing CacheAdapt caching layer");
     khint_t iterator;
     gboolean exclusive = TRUE;
     // allocate a hash table
@@ -39,15 +40,16 @@ ca_init_layer(const char *path)
                                     exclusive,
                                     &error);
     is_initialized = true;
+    g_message("CacheAdapt caching layer initialized");
     return 0;
 }
 
 void
 ca_parse_json(FILE *src, kson_t **dest)
 {
-    int tmp;
-    int len = 0;
-    int max = 0;
+    size_t tmp;
+    size_t len = 0;
+    size_t max = 0;
     char *json= 0;
     char buf[0x10000];
 
@@ -120,11 +122,11 @@ ca_load_adjacent_files(const char *path)
                 kh_value(h, iterator) = local_path;
                 // call ca_copy_to_tmp
                 if ((pushed = g_thread_pool_push(thread_pool,
-                             (gpointer) files,
-                              g_err))
+                                            (gpointer) files,
+                                            g_err))
                      != TRUE)
                 {
-                    printf("couldn't push new task to thread pool\n");
+                    g_error("couldn't push new task to thread pool");
                 }
                 //ca_copy_to_tmp(fdin, fdout);
                 err = real_close(fdin);
@@ -132,7 +134,7 @@ ca_load_adjacent_files(const char *path)
                 free(resolved_path);
                 
             }
-            printf("%s should be laoded here\n", adj_file->v.str);
+            g_info("%s should be laoded here", adj_file->v.str);
         }
         free(files);
         ret = PARSE_SUCCESS;
@@ -140,7 +142,7 @@ ca_load_adjacent_files(const char *path)
     else 
     {
         ret = PARSE_FAIL;
-        printf("failed to parse\n");
+        g_warning("failed to parse");
     }
 
     return ret;
@@ -150,10 +152,10 @@ char *
 ca_normalize_path(const char* path)
 {
     char resolved_path[PATH_MAX];
-    printf("normalizing path\n");
+    g_info("normalizing path");
     realpath(path, resolved_path);
     char *local_path = strcat(strcpy(buffer, cache_path), resolved_path);
-    printf("normalized to: %s\n", local_path);
+    g_info("normalized to: %s", local_path);
     return local_path;
 }
 
@@ -167,34 +169,32 @@ ca_copy_to_tmp(gpointer data)
     struct fd_info *files = ((struct fd_info *) data);
     int fdin = files->fdin;
     int fdout = files->fdout;
+    g_message("fdin: %d and fdout: %d", files->fdin, files->fdout);
 
-    printf("ca_copy_to_tmp called\n");
+    g_info("ca_copy_to_tmp called");
 
     if (fstat(fdin, &statbuf) < 0)
     {
-        printf("fstat error: %d\n", errno);
-        return;
+        g_error("fstat error: %d", errno);
     }
-    printf("mmap original\n");
+    g_info("mmap original");
     if ((src = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0))
         == (caddr_t) -1)
     {
-        printf("mmap error for input: %d\n", errno);
-        return;
+        g_error("mmap error for input: %d", errno);
     }
 
-    printf("mmap local\n");
+    g_info("mmap local");
     if ((dst = mmap (0, statbuf.st_size, PROT_READ | PROT_WRITE, MAP_SHARED,
         fdout, 0)) == (caddr_t) -1)
     {
-        printf("mmap error for output\n");
-        printf("errno: %d\n", errno);
-        //return;
+        g_error("mmap error for output\n"
+                "errno: %d", errno);
     }
-    printf("copy contents to local file\n");
+    g_info("copy contents to local file");
     //memcpy(dst, src, statbuf.st_size);
     ssize_t nwritten = write(fdout, src, statbuf.st_size);
-    printf("end of copy_to_file reached\n");
+    g_info("end of copy_to_file reached");
 }
 
 int
@@ -207,7 +207,7 @@ ca_check_layer(const char *path, char *local_path)
 
     - return hash key?
     */
-    printf("entered cache_layer:ca_check_layer\n");
+    g_info("entered cache_layer:ca_check_layer");
     if (!is_initialized)
     {
         ret = ca_init_layer(path);
@@ -231,9 +231,9 @@ ca_check_layer(const char *path, char *local_path)
         */
         // Maybe needs error handling
         ret = KEY_PRESENT;
-        printf("cache_layer:ca_check_layer: trying to load existing entry\n");
+        g_info("cache_layer:ca_check_layer: trying to load existing entry");
         strncpy(local_path, kh_value(h, iterator), PATH_MAX);
-        printf("cache_layer:ca_check_layer: load of existing file succeeded\n");
+        g_info("cache_layer:ca_check_layer: load of existing file succeeded");
     }
     else
     {
@@ -244,16 +244,16 @@ ca_check_layer(const char *path, char *local_path)
         - create entries for the adjacent files in table
         */
         ret = KEY_MISSING;
-        printf("cache_layer:ca_check_layer: inserting path into hash table\n");
+        g_info("cache_layer:ca_check_layer: inserting path into hash table");
         iterator = kh_put(m32, h, path, &ret);
-        printf("cache_layer:ca_check_layer: inserting key succeeded\n");
+        g_info("cache_layer:ca_check_layer: inserting key succeeded");
         strncpy(local_path, ca_normalize_path(path), PATH_MAX);
         kh_value(h, iterator) = local_path;
-        printf("cache_layer:ca_check_layer: inserting value (%s) succeeded\n", local_path);
+        g_info("cache_layer:ca_check_layer: inserting value (%s) succeeded", local_path);
         // Needs to be called concurently
         if ((err = ca_load_adjacent_files(path)) != PARSE_SUCCESS)
         {
-            printf("Couldn't laod adjacent files\n");
+            g_warning("Couldn't laod adjacent files");
         }
     }
 
