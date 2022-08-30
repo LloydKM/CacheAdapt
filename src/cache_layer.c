@@ -100,9 +100,10 @@ ca_load_adjacent_files(const char *path)
         int err;
         gboolean pushed;
         khint_t iterator;
-        struct fd_info *files;
+        //struct fd_info *files;
+        int files[1000];
 
-        files = malloc(sizeof(struct fd_info));
+        //files = malloc(sizeof(struct fd_info));
 
         p = kson_by_key(kson->root, "adjacent_files");
         for (i = 0; (adj_file = kson_by_index(p, i)); i++)
@@ -111,20 +112,21 @@ ca_load_adjacent_files(const char *path)
             // open file
             if ((fdin = real_open(resolved_path, O_RDWR, mode)) != 0)
             {
-                files->fdin = fdin;
+                //files->fdin = fdin;
+                files[2*i] = fdin;
                 strncpy(local_path, ca_normalize_path(resolved_path), PATH_MAX);
                 // crete path in tmp (glib)
                 g_err = g_mkdir_with_parents(local_path, mode);
                 rmdir(local_path);
                 // create and open file in tmp
                 fdout = real_open(local_path, O_RDWR | O_CREAT | O_TRUNC, mode);
-                files->fdout = fdout;
+                files[2*i + 1] = fdout;
                 // put entry into hash_table
                 iterator = kh_put(m32, h, resolved_path, &ret);
                 kh_value(h, iterator) = local_path;
                 // call ca_copy_to_tmp
                 if ((pushed = g_thread_pool_push(thread_pool,
-                                            (gpointer) files,
+                                            (gpointer) (files + i*2),
                                             g_err))
                      != TRUE)
                 {
@@ -138,7 +140,7 @@ ca_load_adjacent_files(const char *path)
             }
             g_info("%s should be laoded here", adj_file->v.str);
         }
-        free(files);
+        //free(files);
         ret = PARSE_SUCCESS;
     } 
     else 
@@ -168,10 +170,12 @@ ca_copy_to_tmp(gpointer data)
     void *src, *dst;
     struct stat statbuf;
 
-    struct fd_info *files = ((struct fd_info *) data);
-    int fdin = files->fdin;
-    int fdout = files->fdout;
-    g_message("fdin: %d and fdout: %d", files->fdin, files->fdout);
+    //struct fd_info *files = ((struct fd_info *) data);
+
+    int fdin = *((int *) data);
+    int fdout = *(((int *) data) + 1);
+    //g_message("fdin: %d and fdout: %d", files->fdin, files->fdout);
+    g_message("fdin: %d and fdout: %d", fdin, fdout);
 
     g_info("ca_copy_to_tmp called");
 
