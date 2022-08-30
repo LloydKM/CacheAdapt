@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <limits.h>
 
+#define G_LOG_USE_STRUCTURED
+
 #include <glib.h>
 
 #include "cache_layer.h"

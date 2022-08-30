@@ -7,6 +7,7 @@ system calls.
 
 static GThreadPool *thread_pool;
 static GError *error;
+static GAsyncQueue *file_loader;
 static bool is_initialized = false;
 
 // declare some internal functions
@@ -39,6 +40,7 @@ ca_init_layer(const char *path)
                                     MAX_THREADS,
                                     exclusive,
                                     &error);
+    file_loader = g_async_queue_new();
     is_initialized = true;
     g_message("CacheAdapt caching layer initialized");
     return 0;
