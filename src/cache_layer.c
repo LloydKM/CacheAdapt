@@ -7,7 +7,8 @@ system calls.
 
 static GThreadPool *thread_pool;
 static GError *error;
-static GAsyncQueue *file_loader;
+//static int files[1000];
+int *files;
 static bool is_initialized = false;
 
 // declare some internal functions
@@ -32,6 +33,8 @@ ca_init_layer(const char *path)
     g_message("initializing CacheAdapt caching layer");
     khint_t iterator;
     gboolean exclusive = TRUE;
+    //allocate array for filepointer
+    files = (int*)malloc(1000*sizeof(int));
     // allocate a hash table
     h = kh_init(m32);
     // initialize thread pool used by layer
@@ -40,7 +43,6 @@ ca_init_layer(const char *path)
                                     MAX_THREADS,
                                     exclusive,
                                     &error);
-    file_loader = g_async_queue_new();
     is_initialized = true;
     g_message("CacheAdapt caching layer initialized");
     return 0;
@@ -100,8 +102,6 @@ ca_load_adjacent_files(const char *path)
         int err;
         gboolean pushed;
         khint_t iterator;
-        //struct fd_info *files;
-        int files[1000];
 
         //files = malloc(sizeof(struct fd_info));
 
@@ -126,15 +126,15 @@ ca_load_adjacent_files(const char *path)
                 kh_value(h, iterator) = local_path;
                 // call ca_copy_to_tmp
                 if ((pushed = g_thread_pool_push(thread_pool,
-                                            (gpointer) (files + i*2),
+                                            (gpointer) &(files[i*2]),
                                             g_err))
                      != TRUE)
                 {
                     g_error("couldn't push new task to thread pool");
                 }
                 //ca_copy_to_tmp(fdin, fdout);
-                err = real_close(fdin);
-                err = real_close(fdout);
+                //err = real_close(fdin);
+                //err = real_close(fdout);
                 free(resolved_path);
                 
             }
