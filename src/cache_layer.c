@@ -6,14 +6,14 @@ system calls.
 #include "iohooks.h"
 
 static GThreadPool *thread_pool;
-static GError *error;
-//static int files[1000];
+static GError *error = NULL;
 int *files;
 static bool is_initialized = false;
 
 // declare some internal functions
-int ca_init_layer(const char *path);
+void ca_init_layer(const char *path);
 char *ca_normalize_path(const char* path);
+void clean_up(void);
 
 /* TODO:
 
@@ -26,26 +26,35 @@ What functions do I need?
 - something to free allocated space
 */
 
-int
+void
 ca_init_layer(const char *path)
 {
-    // TODO: Create queue for loading of files
+    (void) path;
+
     g_message("initializing CacheAdapt caching layer");
-    khint_t iterator;
     gboolean exclusive = TRUE;
-    //allocate array for filepointer
-    files = (int*)malloc(1000*sizeof(int));
     // allocate a hash table
     h = kh_init(m32);
+    //allocate array for filepointer used in threadpool
+    files = (int*)malloc(1000*sizeof(int));
     // initialize thread pool used by layer
     thread_pool = g_thread_pool_new((GFunc) ca_copy_to_tmp,
                                     NULL,
                                     MAX_THREADS,
                                     exclusive,
                                     &error);
-    is_initialized = true;
-    g_message("CacheAdapt caching layer initialized");
-    return 0;
+    atexit(&clean_up);
+    if (error)
+    {
+        g_message("Failed to initialize Thread Pool: %s", error);
+        g_error_free(error);
+        g_error("Error initializing Thread Pool: %s");
+    }
+    else
+    {
+        is_initialized = true;
+        g_message("CacheAdapt caching layer initialized");
+    }
 }
 
 void
@@ -74,8 +83,6 @@ ca_parse_json(FILE *src, kson_t **dest)
     free(json);
 }
 
-// This needs to be called concurrently
-// probably omp in extra thread
 int
 ca_load_adjacent_files(const char *path)
 {
@@ -85,6 +92,7 @@ ca_load_adjacent_files(const char *path)
     int ret, i;
     FILE *fp;
 
+    (void) path;
     // TODO: Search for json based on path
     // Maybe seperate json handling from rest of function // modularity
 
@@ -175,7 +183,7 @@ ca_copy_to_tmp(gpointer data)
     int fdin = *((int *) data);
     int fdout = *(((int *) data) + 1);
     //g_message("fdin: %d and fdout: %d", files->fdin, files->fdout);
-    g_message("fdin: %d and fdout: %d", fdin, fdout);
+    g_info("fdin: %d and fdout: %d", fdin, fdout);
 
     g_info("ca_copy_to_tmp called");
 
@@ -216,13 +224,7 @@ ca_check_layer(const char *path, char *local_path)
     g_info("entered cache_layer:ca_check_layer");
     if (!is_initialized)
     {
-        ret = ca_init_layer(path);
-
-        if (ret < 0)
-        {
-            perror("Couldn't initialize layer");
-            return -1;
-        }
+        ca_init_layer(path);
     }
 
     // check for match in table
@@ -264,4 +266,12 @@ ca_check_layer(const char *path, char *local_path)
     }
 
     return ret;
+}
+
+void
+clean_up(void)
+{
+    g_message("cleaning up");
+    g_thread_pool_free(thread_pool, TRUE, TRUE);
+    free(files);
 }
