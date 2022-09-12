@@ -105,24 +105,30 @@ ca_load_adjacent_files(const char *path)
     {
         const kson_node_t *p, *adj_file;
         char *resolved_path;
-        char local_path[PATH_MAX];
+        char *local_path;
         int fdin, fdout;
+        size_t len;
         int err;
         gboolean pushed;
         khint_t iterator;
 
-        //files = malloc(sizeof(struct fd_info));
-
+        // TODO: Loop shouldn't be entered as long as there are still jobs in thread pool
         p = kson_by_key(kson->root, "adjacent_files");
         for (i = 0; (adj_file = kson_by_index(p, i)); i++)
         {
             resolved_path = realpath(adj_file->v.str, NULL);
+            // g_message("resolved_path: %s", resolved_path);
             // open file
             if ((fdin = real_open(resolved_path, O_RDWR, mode)) != 0)
             {
                 //files->fdin = fdin;
                 files[2*i] = fdin;
-                strncpy(local_path, ca_normalize_path(resolved_path), PATH_MAX);
+                //strncpy(local_path, ca_normalize_path(resolved_path), PATH_MAX);
+                strncpy(buffer, ca_normalize_path(resolved_path), PATH_MAX);
+                len = strlen(buffer);
+                local_path = (char *)malloc(sizeof(char)*(len+1));
+                strncpy(local_path, buffer, len+1);
+                g_message("local_path: %s", local_path);
                 // crete path in tmp (glib)
                 g_err = g_mkdir_with_parents(local_path, mode);
                 rmdir(local_path);
@@ -143,7 +149,7 @@ ca_load_adjacent_files(const char *path)
                 //ca_copy_to_tmp(fdin, fdout);
                 //err = real_close(fdin);
                 //err = real_close(fdout);
-                free(resolved_path);
+                //free(resolved_path);
                 
             }
             g_info("%s should be laoded here", adj_file->v.str);
@@ -269,9 +275,26 @@ ca_check_layer(const char *path, char *local_path)
 }
 
 void
+print_hashtable(void)
+{
+    khiter_t k;
+    for (k = kh_begin(h); k != kh_end(h); ++k)
+    {
+        if (kh_exist(h, k))
+        {
+            printf("%s - %s\n", kh_key(h, k), kh_value(h, k));
+        }
+    }
+}
+
+void
 clean_up(void)
 {
     g_message("cleaning up");
     g_thread_pool_free(thread_pool, TRUE, TRUE);
     free(files);
+    g_message("hash-table size: %d", kh_size(h));
+    g_message("hash-table number of buckets: %d", kh_n_buckets(h));
+    print_hashtable();
+    kh_destroy(m32, h);
 }
