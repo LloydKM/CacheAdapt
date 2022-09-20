@@ -128,7 +128,7 @@ ca_load_adjacent_files(const char *path)
                 len = strlen(buffer);
                 local_path = (char *)malloc(sizeof(char)*(len+1));
                 strncpy(local_path, buffer, len+1);
-                g_message("local_path: %s", local_path);
+                g_info("local_path: %s", local_path);
                 // crete path in tmp (glib)
                 g_err = g_mkdir_with_parents(local_path, mode);
                 rmdir(local_path);
@@ -136,8 +136,8 @@ ca_load_adjacent_files(const char *path)
                 fdout = real_open(local_path, O_RDWR | O_CREAT | O_TRUNC, mode);
                 files[2*i + 1] = fdout;
                 // put entry into hash_table
-                iterator = kh_put(m32, h, resolved_path, &ret);
-                kh_value(h, iterator) = local_path;
+                iterator = kh_put(m32, h, strdup(resolved_path), &ret);
+                kh_value(h, iterator) = strdup(local_path);
                 // call ca_copy_to_tmp
                 if ((pushed = g_thread_pool_push(thread_pool,
                                             (gpointer) &(files[i*2]),
@@ -236,6 +236,9 @@ ca_check_layer(const char *path, char *local_path)
     // check for match in table
     iterator = kh_get(m32, h, path);
     is_missing = (iterator == kh_end(h));
+    g_info("I exist");
+    if (iterator)
+        g_info("iterator: %s | kh_end: %s", kh_value(h, iterator), kh_end(h));
 
     if(!is_missing) 
     {
@@ -259,10 +262,10 @@ ca_check_layer(const char *path, char *local_path)
         */
         ret = KEY_MISSING;
         g_info("cache_layer:ca_check_layer: inserting path into hash table");
-        iterator = kh_put(m32, h, path, &ret);
+        iterator = kh_put(m32, h, strdup(path), &ret);
         g_info("cache_layer:ca_check_layer: inserting key succeeded");
         strncpy(local_path, ca_normalize_path(path), PATH_MAX);
-        kh_value(h, iterator) = local_path;
+        kh_value(h, iterator) = strdup(local_path);
         g_info("cache_layer:ca_check_layer: inserting value (%s) succeeded", local_path);
         // Needs to be called concurently
         if ((err = ca_load_adjacent_files(path)) != PARSE_SUCCESS)
