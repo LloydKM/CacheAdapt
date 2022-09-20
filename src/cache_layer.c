@@ -223,6 +223,7 @@ ca_check_layer(const char *path, char *local_path)
     int ret, err;
     bool is_missing;
     khint_t iterator;
+    char* resolved_path;
     /* TODO:
 
     - return hash key?
@@ -234,11 +235,11 @@ ca_check_layer(const char *path, char *local_path)
     }
 
     // check for match in table
-    iterator = kh_get(m32, h, path);
+    // TODO: cleanup usage of realpath()
+    resolved_path = realpath(path, NULL);
+    iterator = kh_get(m32, h, resolved_path);
     is_missing = (iterator == kh_end(h));
-    g_info("I exist");
-    if (iterator)
-        g_info("iterator: %s | kh_end: %s", kh_value(h, iterator), kh_end(h));
+    g_info("I exist, is_missing = %d, %s", is_missing, path);
 
     if(!is_missing) 
     {
