@@ -4,6 +4,9 @@ DEBUG	= -std=c11 -Wall -Wextra -Wpedantic -Og -g
 SRC 	= $(CURDIR)/src
 LIBS	= -I$(CURDIR)/lib
 
+# flags to link needed libraries
+LIBS += -ldl
+
 # cflags and libs for glib-2.0
 CFLAGS  += -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-4 -pthread
 LIBS	+= -lglib-2.0
