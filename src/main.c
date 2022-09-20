@@ -11,7 +11,7 @@ Pseudo test program to get library working
 int
 main(int argc, const char *argv[])
 {
-    int fd;
+    int fd, fd2;
     void *buf;
     ssize_t size_read;
     int test_integer;
@@ -28,7 +28,14 @@ main(int argc, const char *argv[])
     scanf("%d", &test_integer);  
     printf("Number = %d\n",test_integer);
 
+    if ( (fd2 = open("./test_data/data2", O_RDONLY)) < 0)
+    {
+        // TODO error
+        return -1;
+    }
+
     close(fd);
-    
+    close(fd2);
+
     return EXIT_SUCCESS;
 }
