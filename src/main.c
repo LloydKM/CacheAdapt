@@ -31,6 +31,7 @@ main(int argc, const char *argv[])
     if ( (fd2 = open("./test_data/data2", O_RDONLY)) < 0)
     {
         // TODO error
+        printf("ERROR: couldn'T open file 2 in second test\nfd: %d\n", fd2);
         return -1;
     }
 

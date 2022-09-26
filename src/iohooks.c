@@ -142,7 +142,7 @@ open (const char *pathname, int flags, ...)
         {
             // file is locally available. Close original file. Open local one
             g_info("file is locally available: %s", local_path);
-            fdout = real_open(local_path, O_RDWR | O_CREAT | O_TRUNC, mode);
+            fdout = real_open(local_path, O_RDONLY, mode);
             files->fdout = fdout;
             //ca_copy_to_tmp((gpointer) files);
             err = real_close(fdin);
