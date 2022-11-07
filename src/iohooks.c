@@ -9,7 +9,7 @@
 #include <fnmatch.h>
 #include <stdio.h>
 //#include <sys/mman.h>
-//#include <sys/stat.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <limits.h>
 
@@ -20,6 +20,8 @@
 #include "cache_layer.h"
 
 typedef int (*real_open_t)(const char *, int, ...);
+typedef int (*real_openat_t)(int, const char *, int, ...);
+typedef FILE *(*real_fopen_t)(const char *restict, const char *restrict);
 typedef ssize_t (*real_read_t)(int, void *, size_t);
 typedef int (*real_close_t)(int);
 
@@ -47,6 +49,18 @@ real_open (const char *pathname, int flags, ...)
         return ((real_open_t)dlsym(RTLD_NEXT, "open"))(pathname, flags, 0x0777);    
     }
     return ((real_open_t)dlsym(RTLD_NEXT, "open"))(pathname, flags, NULL);
+}
+
+int
+real_openat (int dirfd, const char *pathname, int flags)
+{
+    return ((real_openat_t) dlsym(RTLD_NEXT, "openat"))(dirfd, pathname, flags);
+}
+
+FILE *
+real_fopen (const char *restrict pathname, const char *restrict mode)
+{
+    return((real_fopen_t) dlsym(RTLD_NEXT, "fopen"))(pathname, mode);
 }
 
 ssize_t
@@ -149,6 +163,36 @@ open (const char *pathname, int flags, ...)
             return fdout;
         }
     }
+}
+
+FILE *
+fopen (const char *restrict pathname, const char *restrict mode) {
+    g_info("intercepted fopen");
+    int fd;
+
+    fd = open(pathname, O_RDWR);
+    close(fd);
+
+    return real_fopen(pathname, mode);
+
+}
+
+int
+openat (int dirfd, const char *pathname, int flags, ...)
+{
+    g_info("intercepted openat");
+    int ret;
+
+    if (dirfd == AT_FDCWD)
+    {
+        ret = open(pathname, flags);
+    }
+    else
+    {
+        ret = real_openat(dirfd, pathname, flags);
+    }
+
+    return ret;
 }
 
 ssize_t
