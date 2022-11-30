@@ -8,8 +8,8 @@ LIBS	= -I$(CURDIR)/lib
 LIBS += -ldl
 
 # cflags and libs for glib-2.0
-CFLAGS  += -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include -I/usr/include/sysprof-4 -pthread
-LIBS	+= -lglib-2.0
+CFLAGS  += -I/opt/spack/20221019/spack/opt/spack/linux-centos8-x86_64_v3/gcc-12.2.0/glib-2.74.0-gzw7imf226ultlmv26a2sj54kd3ej3ex/include/glib-2.0 -I/opt/spack/20221019/spack/opt/spack/linux-centos8-x86_64_v3/gcc-12.2.0/glib-2.74.0-gzw7imf226ultlmv26a2sj54kd3ej3ex/lib/glib-2.0/include
+LIBS	+= -Wl,-rpath=/opt/spack/20221019/spack/opt/spack/linux-centos8-x86_64_v3/gcc-12.2.0/gettext-0.21-qtxqirwir3t2yl2x2mk6znobsgbxaeuj/lib -lglib-2.0 -lintl 
 
 iohooks.so: $(SRC)/iohooks.c $(SRC)/iohooks.h cache_layer.o kson.o
 	$(CC) $(CFLAGS) -shared $(LIBS) -fPIC -o iohooks.so \

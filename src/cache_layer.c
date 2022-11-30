@@ -96,7 +96,7 @@ ca_load_adjacent_files(const char *path)
     // TODO: Search for json based on path
     // Maybe seperate json handling from rest of function // modularity
 
-    if ((fp = fopen("./config/test.json", "rb")) != 0)
+    if ((fp = fopen("../config/files_02.json", "rb")) != 0)
     {
         ca_parse_json(fp, &kson);
         fclose(fp);
