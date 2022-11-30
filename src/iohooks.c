@@ -169,11 +169,17 @@ FILE *
 fopen (const char *restrict pathname, const char *restrict mode) {
     g_info("intercepted fopen");
     int fd;
+    char path_to_filename[PATH_MAX];
+    char new_path[PATH_MAX] = {0};
 
     fd = open(pathname, O_RDWR);
+    // TODO: handle readlink cleanly
+    snprintf(path_to_filename, PATH_MAX, "/proc/self/fd/%d", fd);
+    readlink(path_to_filename, new_path, PATH_MAX);
     close(fd);
 
-    return real_fopen(pathname, mode);
+    g_message("opened it with path: %s", new_path);
+    return real_fopen(new_path, mode);
 
 }
 
